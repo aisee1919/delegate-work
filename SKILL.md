@@ -182,6 +182,22 @@ Prefer non-interactive local calls. For Claude Code, use:
 claude -p "<prompt>"
 ```
 
+In Codex desktop, plain shell execution may not be able to resolve or run npm global shims even when Claude Code works on the machine. If `claude` fails in the normal shell with command-not-found, access denied, or PowerShell execution-policy errors, do not conclude that Claude Code is unavailable.
+
+Retry through an approved/escalated shell command:
+
+```powershell
+claude -p "<prompt>"
+```
+
+If PATH resolution still fails, call the installed Claude Code executable directly:
+
+```powershell
+& "$env:APPDATA\npm\node_modules\@anthropic-ai\claude-code\bin\claude.exe" -p "<prompt>"
+```
+
+Use `claude --version` or the direct executable with `--version` only to verify availability. Do not install, reinstall, or debug npm unless both the escalated `claude` command and the direct executable path fail.
+
 Do not include API keys, secrets, or sensitive credentials in prompts, logs, skill content, or final answers.
 
 If the helper agent is unavailable, misconfigured, or blocked by auth/network, do not spend Codex context debugging it unless the user's task is specifically about that helper agent. Continue directly or report the blocker.
@@ -190,6 +206,7 @@ If the helper agent is unavailable, misconfigured, or blocked by auth/network, d
 
 If the helper agent is unavailable, misconfigured, blocked by auth/network, or returns vague/oversized output:
 
+- for Claude Code, first distinguish normal-shell restrictions from actual tool unavailability by trying the approved/escalated call path
 - retry at most once with a narrower prompt if delegation still saves Codex context
 - otherwise stop delegating and continue directly in Codex
 - do not spend Codex context debugging the helper agent unless the user's task is specifically about that helper agent
