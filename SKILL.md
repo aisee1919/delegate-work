@@ -13,11 +13,15 @@ Codex still owns scope, safety, review, integration, verification, and final cla
 
 ## Delegate When
 
-Delegate aggressively when a bounded subtask would make Codex spend many tokens on reading, searching, summarizing, boilerplate, first-pass implementation, narrow comparison, or mechanical edits.
+Delegate aggressively when a bounded subtask would make Codex spend many tokens on reading, searching, summarizing, boilerplate, first-pass implementation, narrow comparison, or mechanical edits. Default to analysis-only delegation.
 
-Do not delegate unclear requirements, architecture/product/API/data/security decisions, secrets, destructive operations, dependency/environment mutation, final verification, or final user-facing conclusions.
+Do not delegate unclear requirements, architecture/product/API/data/security decisions, secrets, destructive operations, dependency/environment mutation, final verification, final user-facing conclusions, or small tasks where delegation setup and review cost as much as direct work.
 
-Default to analysis-only delegation. Allow edits only for explicitly named files, small isolated changes, and inspectable diffs.
+## Small Task Fast Path
+
+Do small, clear tasks directly in Codex: simple Q&A, single-command checks, tiny one-file edits, obvious typo fixes, short explanations, and final judgment calls.
+
+Use this fast path by default unless the task clearly passes the 3x quota rule.
 
 ## Hard Gates
 
@@ -36,11 +40,16 @@ If any gate fails, Codex does that part directly.
 ## Quota Rules
 
 - Prefer delegation when helper work would cost at least 3x the Codex cost of prompting and reviewing it.
+- Treat 3x as met when Codex would need to inspect many files, read >200 lines, summarize long logs, or draft substantial boilerplate.
+- Estimate review cost as prompt + helper output + files/diffs Codex must inspect.
+- If the 3x advantage is unclear, do it directly.
 - Ask for concise findings, paths, line numbers, changed-file lists, and short rationales.
 - Default output limit: 200 words unless the task needs more.
 - Use explicit command timeouts; abort stuck helpers and continue directly.
+- For parallel helpers, give each call its own timeout; use partial good results and drop slow/conflicting ones.
 - Ask for summaries first; inspect details only when needed.
 - Stop delegating if outputs become vague, verbose, or harder to review than direct work.
+- If the same helper or subtask type fails twice in one task, stop delegating that type for the task.
 
 ## Parallel Delegation
 
@@ -52,11 +61,11 @@ Do not parallelize dependent work, shared write scopes, secret/sensitive-data ta
 
 1. Split the task into Codex-owned judgment work and helper-owned bounded work.
 2. Apply the hard gates and quota rules.
-3. Send a narrow prompt with exact task, scope, forbidden actions, output limit, expected format, edit permission, and known checks.
+3. Send a narrow prompt with exact task, scope, forbidden actions, output limit, expected format, and known checks. Allow edits only for explicitly named files, small isolated changes, and inspectable diffs.
 4. Before helper edits, note the current diff/status. Review the smallest sufficient evidence; never skip necessary verification.
 5. Accept, discard, or redo helper work. Retry once with a narrower prompt if useful; then continue directly.
 
-For Claude Code invocation issues in Codex desktop, read `references/claude-code.md` before installing or debugging npm.
+For Claude Code invocation issues in Codex desktop, read this skill folder's `references/claude-code.md` before installing or debugging npm.
 
 ## Prompt Template
 
@@ -91,6 +100,7 @@ Before using helper work, verify:
 - result matches the delegated task
 - diff/findings are coherent
 - cited findings were spot-checked; edits passed targeted diff review
-- relevant tests, checks, or direct inspection pass
-- failed helper edits are discarded or reverted without touching unrelated user changes
+- relevant `git diff -- <files>`, tests, lint/type checks, or direct inspection pass
+- prefer automated tests/lint/type checks; otherwise use focused direct behavior inspection
+- failed helper edits are discarded or only helper-owned changes are reverted, preserving unrelated user/Codex work
 - no hidden uncertainty or unexplained broadening
