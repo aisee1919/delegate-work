@@ -38,6 +38,7 @@ If any gate fails, Codex does that part directly.
 - Prefer delegation when helper work would cost at least 3x the Codex cost of prompting and reviewing it.
 - Ask for concise findings, paths, line numbers, changed-file lists, and short rationales.
 - Default output limit: 200 words unless the task needs more.
+- Use explicit command timeouts; abort stuck helpers and continue directly.
 - Ask for summaries first; inspect details only when needed.
 - Stop delegating if outputs become vague, verbose, or harder to review than direct work.
 
