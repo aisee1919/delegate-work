@@ -55,6 +55,29 @@ Allow helper agents to edit files only when:
 
 Before accepting edits, Codex must inspect the diff.
 
+## Parallel Delegation
+
+Use multiple helper agents in parallel when the subtasks are independent and doing so saves Codex context.
+
+For Claude Code, this can mean multiple independent `claude -p` calls, each with its own bounded prompt and non-overlapping scope.
+
+Parallel delegation is allowed for:
+
+- separate search or summarization tasks
+- independent files or modules
+- competing analysis of a narrow question with compact outputs
+- disjoint candidate patches that do not touch the same files
+
+Do not use parallel delegation when:
+
+- subtasks share write scope
+- one result depends on another
+- the combined outputs would be larger than doing the work directly
+- Codex would need to resolve conflicting architectural or product decisions
+- any helper needs access to secrets or sensitive user data
+
+When multiple helpers are used, Codex must merge results explicitly, reject conflicts, and verify the final integrated work. Helper agents must not coordinate by editing the same files or assuming each other's changes.
+
 ## What To Delegate Aggressively
 
 Good candidates:
@@ -110,7 +133,7 @@ The goal is not to minimize total AI usage. The goal is to minimize Codex usage 
 
 1. Split the user's task into judgment-heavy parts and bounded helper parts.
 2. Keep judgment-heavy parts in Codex.
-3. Delegate bounded helper parts whenever doing so saves Codex context.
+3. Delegate bounded helper parts whenever doing so saves Codex context, using multiple helpers in parallel only when their scopes are independent.
 4. Give the helper agent a narrow prompt with:
    - exact task
    - allowed files/directories
