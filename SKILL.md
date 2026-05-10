@@ -1,21 +1,23 @@
 ---
 name: delegate-work
-description: Use when the user wants Codex to reduce its own quota usage by outsourcing simple, bounded subtasks to local helper agents without lowering final task quality.
+description: Use when the user has a standing preference to reduce Codex quota by outsourcing bounded subtasks to local helper agents, or when a task can benefit from helper delegation without lowering final quality.
 ---
 
 # Delegate Work
 
 ## Contract
 
-Use local helper agents to save Codex quota. Helper cost is irrelevant unless the user says otherwise. Codex owns scope, safety, review, integration, verification, and final claims. Helper output is candidate work only; final quality must match Codex-direct work.
+Use local helper agents by default when they are capable of producing compact, reviewable output for bounded subtasks. Helper cost is irrelevant unless the user says otherwise. Codex owns scope, safety, final acceptance, and final claims. Helper output is candidate work; final quality must match Codex-direct work.
 
 ## Delegate Or Direct
 
-Delegate bounded work that would make Codex spend many tokens on reading, searching, summarizing, boilerplate, first-pass implementation, narrow comparison, or mechanical edits. Default to analysis-only.
+Delegate bounded work that would make Codex spend many tokens on reading, searching, summarizing, boilerplate, first-pass implementation, quality checks, narrow comparison, or mechanical edits. Default to analysis-only, but allow implementation and quality-check subtasks when the helper model is capable and scope is explicit.
 
 Do direct work for simple Q&A, single-command checks, tiny one-file edits, obvious typo fixes, short explanations, final judgment calls, unclear requirements, architecture/product/API/data/security decisions, secrets, destructive operations, dependency/environment mutation, final verification, or final user-facing conclusions.
 
-Use direct work unless delegation plausibly saves at least 1.5x Codex cost. Treat 1.5x as met when Codex would inspect multiple files, read >100 lines, summarize logs, compare options, or draft boilerplate. If plausible but unclear, delegate analysis-only with a <=100-word output cap.
+Do not wait for the user to name this skill again. Treat the user's standing preference as authorization to consider delegation, then apply the gates below.
+
+Use direct work unless the helper is likely capable of producing compact, reviewable evidence for the bounded task. If capability is plausible but uncertain, delegate analysis-only with a <=100-word output cap.
 
 ## Gates
 
@@ -27,13 +29,17 @@ Delegate only if all pass:
 - **Decision**: no unresolved product, architecture, API, data, security, privacy, persistence, migration, or data-loss decision.
 - **Privacy**: no secrets, credentials, private data, or sensitive material unless approved.
 - **State**: write scopes do not overlap with active Codex/user edits.
-- **Quota**: savings plausibly exceed prompt + output + review cost.
+- **Capability**: the helper can likely complete the bounded task, including delegated QA when useful, and return outcome evidence Codex can review cheaply.
 
 If any gate fails, do it directly.
 
-## Quota And Cleanup
+## Helper Discipline
 
-- Estimate review cost as prompt + helper output + files/diffs Codex must inspect.
+- Prefer delegation when the helper is well-suited to the task, such as multi-file search, >100 lines of reading, log summary, option comparison, or boilerplate draft.
+- Avoid delegation when helper output would be harder to verify than direct work.
+- Helpers may perform implementation self-review, edge-case search, static issue scan, diff summary, test suggestions, and verification-command recommendations.
+- Allow edits only for explicit files/symbols and inspectable diffs; allow code-level global symbol changes only when the exact file, symbol, and intended behavior are specified.
+- Do not let helpers change persistent environment variables, system settings, dependency state, git state, or global tool configuration.
 - Ask for paths, line numbers, changed-file lists, and short rationales.
 - Default output limit: 200 words; use summaries first and inspect details only when needed.
 - Use explicit timeouts; abort stuck helpers and continue directly.
@@ -49,9 +55,9 @@ Do not parallelize dependent work, shared write scopes, secret/sensitive-data ta
 ## Workflow
 
 1. Split Codex-owned judgment work from helper-owned bounded work.
-2. Apply gates and quota rules.
-3. Send a narrow prompt with exact task, scope, forbidden actions, output limit, expected format, and known checks. Allow edits only for explicitly named files, small isolated changes, and inspectable diffs.
-4. Before helper edits, note current diff/status. Review the smallest sufficient evidence; never skip necessary verification.
+2. Apply gates and helper discipline.
+3. Send a narrow prompt with exact task, scope, forbidden actions, output limit, expected format, known checks, and allowed edit/symbol scope.
+4. Before helper edits, note current diff/status. Use outcome-first review: completion evidence, changed-file list, scope, checks, and user-visible behavior before detailed diffs.
 5. Accept, discard, or redo helper work. Retry once with a narrower prompt if useful; then continue directly.
 
 When helpers are used, tell the user briefly: `Delegated: <task>; accepted/rejected: <result>.` Do not hide delegation or narrate routine helper mechanics.
@@ -72,8 +78,8 @@ If unsure, stop and state the blocker.
 
 Before using helper work, verify:
 
-- scope, task match, and diff/findings are coherent
-- cited findings were spot-checked; edits passed targeted diff review
+- scope, task match, changed-file list, and outcome evidence are coherent
+- helper QA evidence is plausible; inspect details only if evidence is weak, checks fail, scope drifts, or risk is high
 - relevant `git diff -- <files>`, tests, lint/type checks, or direct inspection pass
 - behavior changes prefer automated tests/lint/type checks; otherwise use focused direct behavior inspection
 - failed helper edits are discarded or only helper-owned changes are reverted, preserving unrelated user/Codex work
